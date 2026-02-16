@@ -19,7 +19,6 @@ namespace ComputerGraphics_1
 
     public partial class Form1 : Form
     {
-        // Добавьте эти поля в начало класса
         private Bitmap bitmapPrint;
         private Bitmap bitmapDebug;
         private Pen pen;
@@ -29,7 +28,6 @@ namespace ComputerGraphics_1
         private Timer timer;
         private int scale;
         private int roundCircle;
-        //private ;
         private List<Coord2D> dots;
         private MouseClickState mouse;
         string selectedTool;
@@ -46,10 +44,8 @@ namespace ComputerGraphics_1
         }
         private void Form1_Load(object sender, EventArgs e)
         {
-            // Этот метод можно оставить пустым, если он не нужен
-            // Или перенести сюда код инициализации, если хотите
+
         }
-        // Добавьте этот новый метод для инициализации рисования
         private void InitializeTimer()
         {
             timer = new Timer();
@@ -66,7 +62,6 @@ namespace ComputerGraphics_1
             roundCircle = int.Parse(textBox2.Text);
             selectedTool = comboBox1.SelectedItem?.ToString() ?? "dot";
             methodSolution = comboBox2.SelectedItem?.ToString() ?? "Bresenham's line algorithm";
-            // Создание Bitmap с размерами PictureBox
             bitmapPrint = new Bitmap(pictureBox1.Width, pictureBox1.Height);
             bitmapDebug = new Bitmap(bitmapPrint);
 
@@ -79,13 +74,14 @@ namespace ComputerGraphics_1
             // Настройка пера
             pen = new Pen(printColor, pointSize);
 
-            // Подписка на событие мыши (вместо Click используем MouseClick для координат)
+            
             pictureBox1.MouseClick += PictureBox1_MouseClick;
             pictureBox1.MouseMove += PictureBox1_MouseMove;
             mouse = new MouseClickState();
 
-            // Настройка ComboBox, если нужно
-            comboBox1.SelectedIndex = 0; // Выбираем "dot" по умолчанию
+
+            comboBox1.SelectedIndex = 0;
+            comboBox2.SelectedIndex = 0;
         }
         private void SetDot(Graphics g, int x, int y)
         {
@@ -124,10 +120,8 @@ namespace ComputerGraphics_1
 
             while (true)
             {
-                // Рисуем текущий пиксель
                 SetPixel(g, debug, x1, y1);
 
-                // Проверяем, достигли ли конца линии
                 if (x1 == x2 && y1 == y2) break;
 
                 int e2 = 2 * err;
@@ -147,42 +141,32 @@ namespace ComputerGraphics_1
         public void DrawLineWu(Graphics g, bool debug, int x1, int y1, int x2, int y2)
         {
             bool steep = Math.Abs(y2 - y1) > Math.Abs(x2 - x1);
-
-            // Транспонируем, если линия крутая
             if (steep)
             {
                 Swap(ref x1, ref y1);
                 Swap(ref x2, ref y2);
             }
-
-            // Убеждаемся, что x1 < x2
             if (x1 > x2)
             {
                 Swap(ref x1, ref x2);
                 Swap(ref y1, ref y2);
             }
-
-            // Рисуем первую точку
             DrawPointWu(g, debug, steep, x1, y1, 1.0);
             DrawPointWu(g, debug, steep, x2, y2, 1.0);
 
             int dx = x2 - x1;
             int dy = y2 - y1;
             double gradient = dx == 0 ? 1.0 : (double)dy / dx;
-
-            // Первый y-пересечение
             double y = y1 + gradient;
 
             for (int x = x1 + 1; x < x2; x++)
             {
-                // Рисуем два пикселя с разной яркостью
                 DrawPointWu(g, debug, steep, x, (int)y, 1 - (y - Math.Floor(y)));
                 DrawPointWu(g, debug, steep, x, (int)y + 1, y - Math.Floor(y));
 
                 y += gradient;
             }
         }
-
         private void DrawPointWu(Graphics g, bool debug, bool steep, int x, int y, double brightness)
         {
             if (brightness <= 0 || brightness > 1) return;
@@ -196,7 +180,6 @@ namespace ComputerGraphics_1
                 SetPixel(g, debug, x, y, brightness);
             }
         }
-
         private void Swap(ref int a, ref int b)
         {
             int temp = a;
@@ -204,26 +187,20 @@ namespace ComputerGraphics_1
             b = temp;
         }
 
-
         public void DrawCircleSimple(Graphics g, bool debug, int centerX, int centerY, int pointX, int pointY, int segments, bool useWu)
         {
-            // Считаем радиус
             double radius = Math.Sqrt(Math.Pow(pointX - centerX, 2) + Math.Pow(pointY - centerY, 2));
 
             if (radius < 1) return;
 
-            // Шаг угла в радианах
             double angleStep = 2 * Math.PI / segments;
-
-            // Запоминаем первую точку
             double firstAngle = 0;
+
             int firstX = (int)(centerX + radius * Math.Cos(firstAngle));
             int firstY = (int)(centerY + radius * Math.Sin(firstAngle));
 
             int prevX = firstX;
             int prevY = firstY;
-
-            // Рисуем линии между точками
             for (int i = 1; i <= segments; i++)
             {
                 double angle = i * angleStep;
@@ -238,33 +215,25 @@ namespace ComputerGraphics_1
                 prevX = x;
                 prevY = y;
             }
-
-
         }
         void BildFigure()
         {
             if (rebildGraphic)
             {
                 bool debug = true;
-                //bitmapPrint
-                //bitmapDebug
-                
                 switch (mouse.currentSelect())
                 {
                     case 0:
-                        if(mouse.prevSelect() != 1)
+                        if (mouse.prevSelect() != 1)
                             debug = false;
                         using (Graphics g = Graphics.FromImage(bitmapPrint))
                         {
                             g.DrawImage(bitmapDebug, 0, 0);
                         }
-                        //using (Graphics g = Graphics.FromImage(bitmapDebug))
-                        //{
-                        //    g.DrawImage(bitmapPrint, 0, 0);
-                        //}
+
                         goto case 2;
                     case 1:
-                        
+
                         using (Graphics g = Graphics.FromImage(bitmapPrint))
                         {
                             textBoxX1.Text = $"{mouse.firstClick.Get().x}";
@@ -289,65 +258,60 @@ namespace ComputerGraphics_1
                         break;
                     case 2:
                         using (Graphics g = Graphics.FromImage(bitmapPrint))
-                            if(mouse.secondClick.exists() || !debug)
-                        {
-
-                            textBoxX2.Text = $"{mouse.secondClick.Get().x}";
-                            textBoxY2.Text = $"{mouse.secondClick.Get().y}";
-                            switch (selectedTool)
+                            if (mouse.secondClick.exists() || !debug)
                             {
-                                case "line":
-                                    switch (methodSolution)
-                                    {
-                                        case "Bresenham's line algorithm":
-                                            DrawLineBresenham(g, debug,
-                                                mouse.firstClick.Get().x, mouse.firstClick.Get().y,
-                                                mouse.secondClick.Get().x, mouse.secondClick.Get().y);
-                                            break;
 
-                                        case "Xiaolin Wu's line algorithm":
-                                            DrawLineWu(g, debug,
-                                                mouse.firstClick.Get().x, mouse.firstClick.Get().y,
-                                                mouse.secondClick.Get().x, mouse.secondClick.Get().y);
-                                            break;
-                                    }
-                                    break;
-                                case "circle":
-                                    switch (methodSolution)
-                                    {
-                                        case "Bresenham's line algorithm":
-                                            DrawCircleSimple(g, debug,
-                                                mouse.firstClick.Get().x, mouse.firstClick.Get().y,
-                                                mouse.secondClick.Get().x, mouse.secondClick.Get().y,
-                                                roundCircle, false);
-                                            break;
+                                textBoxX2.Text = $"{mouse.secondClick.Get().x}";
+                                textBoxY2.Text = $"{mouse.secondClick.Get().y}";
+                                switch (selectedTool)
+                                {
+                                    case "line":
+                                        switch (methodSolution)
+                                        {
+                                            case "Bresenham's line algorithm":
+                                                DrawLineBresenham(g, debug,
+                                                    mouse.firstClick.Get().x, mouse.firstClick.Get().y,
+                                                    mouse.secondClick.Get().x, mouse.secondClick.Get().y);
+                                                break;
 
-                                        case "Xiaolin Wu's line algorithm":
-                                            DrawCircleSimple(g, debug,
-                                                mouse.firstClick.Get().x, mouse.firstClick.Get().y,
-                                                mouse.secondClick.Get().x, mouse.secondClick.Get().y,
-                                                roundCircle, true);
-                                            break;
-                                    }
-                                    break;
+                                            case "Xiaolin Wu's line algorithm":
+                                                DrawLineWu(g, debug,
+                                                    mouse.firstClick.Get().x, mouse.firstClick.Get().y,
+                                                    mouse.secondClick.Get().x, mouse.secondClick.Get().y);
+                                                break;
+                                        }
+                                        break;
+                                    case "circle":
+                                        switch (methodSolution)
+                                        {
+                                            case "Bresenham's line algorithm":
+                                                DrawCircleSimple(g, debug,
+                                                    mouse.firstClick.Get().x, mouse.firstClick.Get().y,
+                                                    mouse.secondClick.Get().x, mouse.secondClick.Get().y,
+                                                    roundCircle, false);
+                                                break;
+
+                                            case "Xiaolin Wu's line algorithm":
+                                                DrawCircleSimple(g, debug,
+                                                    mouse.firstClick.Get().x, mouse.firstClick.Get().y,
+                                                    mouse.secondClick.Get().x, mouse.secondClick.Get().y,
+                                                    roundCircle, true);
+                                                break;
+                                        }
+                                        break;
+                                }
                             }
-                        }
-                        if(!debug)
-                            //using (Graphics g = Graphics.FromImage(bitmapPrint))
-                            //{
-                            //    g.DrawImage(bitmapDebug, 0, 0);
-                            //}
-                        using (Graphics g = Graphics.FromImage(bitmapDebug)) 
-                        {
-                            g.DrawImage(bitmapPrint, 0, 0);
-                        }
+                        if (!debug)
+                            using (Graphics g = Graphics.FromImage(bitmapDebug))
+                            {
+                                g.DrawImage(bitmapPrint, 0, 0);
+                            }
                         break;
                 }
                 rebildGraphic = false;
                 pictureBox1.Refresh();
             }
         }
-        // Добавьте этот обработчик для рисования точек
         private void PictureBox1_MouseClick(object sender, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Left)
@@ -368,12 +332,12 @@ namespace ComputerGraphics_1
             Coord2D tmpDot = new Coord2D(e, scale);
             switch (mouse.nextSelect(selectedTool))
             {
-                
+
                 case 1:
                     textBoxX1.Text = $"{tmpDot.Get().x}";
                     textBoxY1.Text = $"{tmpDot.Get().y}";
 
-                    break; 
+                    break;
                 case 2:
 
                     textBoxX2.Text = $"{tmpDot.Get().x}";
@@ -383,21 +347,8 @@ namespace ComputerGraphics_1
         }
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // Здесь можно менять настройки в зависимости от выбранного инструмента
-            
 
-            switch (selectedTool)
-            {
-                case "eraser":
-                    // Для ластика можно увеличить размер
-                    pointSize = 10;
-                    break;
-                default:
-                    pointSize = 5;
-                    break;
-            }
         }
-
         public partial class MouseClickState
         {
             public Coord2D firstClick;
@@ -508,7 +459,7 @@ namespace ComputerGraphics_1
             roundCircle = int.Parse(textBox2.Text);
             selectedTool = comboBox1.SelectedItem?.ToString() ?? "dot";
             methodSolution = comboBox2.SelectedItem?.ToString() ?? "Bresenham's line algorithm";
-            if(textBoxX1.Text != "")
+            if (textBoxX1.Text != "")
                 mouse.firstClick.x = int.Parse(textBoxX1.Text) * scale;
             if (textBoxX2.Text != "")
                 mouse.firstClick.y = int.Parse(textBoxY1.Text) * scale;
