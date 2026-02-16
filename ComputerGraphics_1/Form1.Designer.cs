@@ -43,6 +43,8 @@
             this.buttonApply = new System.Windows.Forms.Button();
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.labelScale = new System.Windows.Forms.Label();
+            this.textBox2 = new System.Windows.Forms.TextBox();
+            this.label1 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             this.SuspendLayout();
             // 
@@ -126,6 +128,7 @@
             this.comboBox1.Items.AddRange(new object[] {
             "dot",
             "line",
+            "circle",
             "eraser"});
             this.comboBox1.Location = new System.Drawing.Point(547, 68);
             this.comboBox1.Name = "comboBox1";
@@ -177,11 +180,29 @@
             this.labelScale.TabIndex = 13;
             this.labelScale.Text = "Scale";
             // 
+            // textBox2
+            // 
+            this.textBox2.Location = new System.Drawing.Point(707, 233);
+            this.textBox2.Name = "textBox2";
+            this.textBox2.Size = new System.Drawing.Size(67, 20);
+            this.textBox2.TabIndex = 16;
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(666, 236);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(39, 13);
+            this.label1.TabIndex = 15;
+            this.label1.Text = "Round";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.textBox2);
+            this.Controls.Add(this.label1);
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.labelScale);
             this.Controls.Add(this.buttonApply);
@@ -222,6 +243,8 @@
         private System.Windows.Forms.Button buttonApply;
         private System.Windows.Forms.TextBox textBox1;
         private System.Windows.Forms.Label labelScale;
+        private System.Windows.Forms.TextBox textBox2;
+        private System.Windows.Forms.Label label1;
     }
 }
 
