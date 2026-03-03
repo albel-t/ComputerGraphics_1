@@ -129,6 +129,7 @@
             "dot",
             "line",
             "circle",
+            "selection",
             "eraser"});
             this.comboBox1.Location = new System.Drawing.Point(547, 68);
             this.comboBox1.Name = "comboBox1";

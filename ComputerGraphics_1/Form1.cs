@@ -21,6 +21,7 @@ namespace ComputerGraphics_1
     {
         private Bitmap bitmapPrint;
         private Bitmap bitmapDebug;
+        private Bitmap bitmapSelect;
         private Pen pen;
         private Color debugColor = Color.Green;
         private Color printColor = Color.Black;
@@ -29,10 +30,10 @@ namespace ComputerGraphics_1
         private int scale;
         private int roundCircle;
         private List<Coord2D> dots;
-        private MouseClickState mouse;
+        private MouseState mouse;
         string selectedTool;
         string methodSolution;
-
+        MRR_info mrr_Info;
         bool rebildGraphic;
 
 
@@ -41,6 +42,7 @@ namespace ComputerGraphics_1
             InitializeComponent();
             InitializeDrawing();
             InitializeTimer();
+            mrr_Info = new MRR_info();
         }
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -74,10 +76,10 @@ namespace ComputerGraphics_1
             // Настройка пера
             pen = new Pen(printColor, pointSize);
 
-            
+
             pictureBox1.MouseClick += PictureBox1_MouseClick;
             pictureBox1.MouseMove += PictureBox1_MouseMove;
-            mouse = new MouseClickState();
+            mouse = new MouseState();
 
 
             comboBox1.SelectedIndex = 0;
@@ -186,8 +188,44 @@ namespace ComputerGraphics_1
             a = b;
             b = temp;
         }
+        void DrawLine(Graphics g, bool debug, Coord2D dot1, Coord2D dot2)
+        {
+            switch (methodSolution)
+            {
+                case "Bresenham's line algorithm":
+                    DrawLineBresenham(g, debug,
+                        dot1.Get().x, dot1.Get().y,
+                        dot2.Get().x, dot2.Get().y);
+                    break;
 
-        public void DrawCircleSimple(Graphics g, bool debug, int centerX, int centerY, int pointX, int pointY, int segments, bool useWu)
+                case "Xiaolin Wu's line algorithm":
+                    DrawLineWu(g, debug,
+                        dot1.Get().x, dot1.Get().y,
+                        dot2.Get().x, dot2.Get().y);
+                    break;
+            }
+        }
+        void DrawRect(Graphics g, bool debug, Coord2D dot1, Coord2D dot2)
+        {
+            DrawLineBresenham(g, debug,
+            dot1.Get().x, dot1.Get().y,
+            dot2.Get().x, dot1.Get().y);
+            DrawLineBresenham(g, debug,
+            dot1.Get().x, dot1.Get().y,
+            dot1.Get().x, dot2.Get().y);
+            DrawLineBresenham(g, debug,
+            dot1.Get().x, dot2.Get().y,
+            dot2.Get().x, dot2.Get().y);
+            DrawLineBresenham(g, debug,
+            dot2.Get().x, dot1.Get().y,
+            dot2.Get().x, dot2.Get().y);
+
+        }
+        public void DrawCircle(Graphics g, bool debug, Coord2D dot1, Coord2D dot2, int segments)
+        {
+            DrawCircleSimple(g, debug, dot1.Get().x, dot1.Get().y, dot2.Get().x, dot2.Get().y, segments);
+        }
+        public void DrawCircleSimple(Graphics g, bool debug, int centerX, int centerY, int pointX, int pointY, int segments)
         {
             double radius = Math.Sqrt(Math.Pow(pointX - centerX, 2) + Math.Pow(pointY - centerY, 2));
 
@@ -207,19 +245,110 @@ namespace ComputerGraphics_1
                 int x = (int)(centerX + radius * Math.Cos(angle));
                 int y = (int)(centerY + radius * Math.Sin(angle));
 
-                if (useWu)
-                    DrawLineWu(g, debug, prevX, prevY, x, y);
-                else
-                    DrawLineBresenham(g, debug, prevX, prevY, x, y);
 
+                switch (methodSolution)
+                {
+                    case "Xiaolin Wu's line algorithm":
+                        DrawLineWu(g, debug, prevX, prevY, x, y);
+                        break;
+
+                    case "Bresenham's line algorithm":
+                        DrawLineBresenham(g, debug, prevX, prevY, x, y);
+                        break;
+                }
                 prevX = x;
                 prevY = y;
+            }
+        }
+
+        public Bitmap ScaleBitmap(Bitmap sourceBitmap, double scaleX, double scaleY)
+        {
+            if (sourceBitmap == null)
+                throw new ArgumentNullException(nameof(sourceBitmap));
+
+            int newWidth = (int)(sourceBitmap.Width * scaleX);
+            int newHeight = (int)(sourceBitmap.Height * scaleY);
+
+            Bitmap scaledBitmap = new Bitmap(newWidth, newHeight);
+
+            using (Graphics g = Graphics.FromImage(scaledBitmap))
+            {
+                g.Clear(Color.Transparent);
+                using (var matrix = new System.Drawing.Drawing2D.Matrix())
+                {
+                    matrix.Scale((float)scaleX, (float)scaleY);
+                    g.Transform = matrix;
+                    g.DrawImage(sourceBitmap, 0, 0);
+                }
+            }
+
+            return scaledBitmap;
+        }
+        public Bitmap RotateBitmap(Bitmap sourceBitmap, float angleDegrees)
+        {
+            if (sourceBitmap == null)
+                throw new ArgumentNullException(nameof(sourceBitmap));
+
+            float angleRadians = angleDegrees * (float)Math.PI / 180f;
+
+            float cos = (float)Math.Abs(Math.Cos(angleRadians));
+            float sin = (float)Math.Abs(Math.Sin(angleRadians));
+
+            int newWidth = (int)(sourceBitmap.Width * cos + sourceBitmap.Height * sin);
+            int newHeight = (int)(sourceBitmap.Width * sin + sourceBitmap.Height * cos);
+
+            Bitmap rotatedBitmap = new Bitmap(newWidth, newHeight);
+
+            using (Graphics g = Graphics.FromImage(rotatedBitmap))
+            {
+                g.Clear(Color.Transparent);
+                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+
+                using (var matrix = new System.Drawing.Drawing2D.Matrix())
+                {
+                    matrix.Rotate(angleDegrees);
+                    g.Transform = matrix;
+
+                    g.DrawImage(sourceBitmap, 0, 0);
+                }
+            }
+
+            return rotatedBitmap;
+        }
+        public Bitmap InsertBitmap(Bitmap fromBitmap, Bitmap toBitmap, int tabX, int tabY)
+        {
+            for (int x = 0; x < fromBitmap.Width; x++)
+            {
+                for (int y = 0; y < fromBitmap.Height; y++)
+                {
+                    if (tabX + x >= 0 && tabX + x < toBitmap.Width &&
+                         tabY + y >= 0 && tabY + y < toBitmap.Height)
+                    {
+                        Color Color = fromBitmap.GetPixel(x, y);
+
+                        if (Color.R != 255 || Color.G != 255 || Color.B != 255)
+                        {
+                            toBitmap.SetPixel(tabX*scale + x, tabY*scale + y, Color);
+                        }
+                    }
+                }
+            }
+            return toBitmap;
+        }
+        public void PopupClosed(object sender, FormClosedEventArgs e)
+        {
+            FormSpace popup = sender as FormSpace;
+            if (popup != null && popup.DialogResult == DialogResult.OK)
+            {
+                mrr_Info = popup.GetResult();
             }
         }
         void BildFigure()
         {
             if (rebildGraphic)
             {
+                rebildGraphic = false;
                 bool debug = true;
                 switch (mouse.currentSelect())
                 {
@@ -241,20 +370,23 @@ namespace ComputerGraphics_1
                             switch (selectedTool)
                             {
                                 case "circle":
-                                case "dot":
                                 case "line":
+                                case "dot":
                                     SetDot(g, mouse.firstClick.x, mouse.firstClick.y);
                                     break;
-
                                 case "eraser":
                                     using (SolidBrush brush = new SolidBrush(Color.White))
                                     {
-                                        g.FillRectangle(brush, mouse.firstClick.Get().x, mouse.firstClick.Get().y, pointSize * 2, pointSize * 2);
+                                        g.FillEllipse(brush, mouse.curentCoord.x, mouse.curentCoord.y, pointSize * 4, pointSize * 4);
+                                        rebildGraphic = true;
                                     }
+                                    break;
+                                case "selection":
+                                    DrawRect(g, debug, mouse.firstClick.Get(), mouse.curentCoord.Get());
+                                    rebildGraphic = true;
                                     break;
                             }
                         }
-                        bitmapDebug = new Bitmap(bitmapPrint);
                         break;
                     case 2:
                         using (Graphics g = Graphics.FromImage(bitmapPrint))
@@ -266,39 +398,50 @@ namespace ComputerGraphics_1
                                 switch (selectedTool)
                                 {
                                     case "line":
-                                        switch (methodSolution)
-                                        {
-                                            case "Bresenham's line algorithm":
-                                                DrawLineBresenham(g, debug,
-                                                    mouse.firstClick.Get().x, mouse.firstClick.Get().y,
-                                                    mouse.secondClick.Get().x, mouse.secondClick.Get().y);
-                                                break;
-
-                                            case "Xiaolin Wu's line algorithm":
-                                                DrawLineWu(g, debug,
-                                                    mouse.firstClick.Get().x, mouse.firstClick.Get().y,
-                                                    mouse.secondClick.Get().x, mouse.secondClick.Get().y);
-                                                break;
-                                        }
+                                        DrawLine(g, debug, mouse.firstClick.Get(), mouse.secondClick.Get());
                                         break;
                                     case "circle":
-                                        switch (methodSolution)
-                                        {
-                                            case "Bresenham's line algorithm":
-                                                DrawCircleSimple(g, debug,
-                                                    mouse.firstClick.Get().x, mouse.firstClick.Get().y,
-                                                    mouse.secondClick.Get().x, mouse.secondClick.Get().y,
-                                                    roundCircle, false);
-                                                break;
-
-                                            case "Xiaolin Wu's line algorithm":
-                                                DrawCircleSimple(g, debug,
-                                                    mouse.firstClick.Get().x, mouse.firstClick.Get().y,
-                                                    mouse.secondClick.Get().x, mouse.secondClick.Get().y,
-                                                    roundCircle, true);
-                                                break;
-                                        }
+                                        DrawCircle(g, debug, mouse.firstClick.Get(), mouse.secondClick.Get(), roundCircle);
                                         break;
+                                    case "selection":
+
+                                        if (debug)
+                                        {
+                                            DrawRect(g, debug, mouse.firstClick.Get(), mouse.secondClick.Get());
+                                        }
+                                        bitmapSelect = new Bitmap(Math.Abs(mouse.secondClick.x - mouse.firstClick.x) + 1,
+                                                                    Math.Abs(mouse.secondClick.y - mouse.firstClick.y) + 1);
+                                        using (Graphics space = Graphics.FromImage(bitmapSelect))
+                                        {
+                                            if (debug)
+                                            {
+                                                space.DrawImage(bitmapDebug, 0, 0,
+                                                new Rectangle(mouse.firstClick.x, mouse.firstClick.y,
+                                                mouse.secondClick.x - mouse.firstClick.x,
+                                                mouse.secondClick.y - mouse.firstClick.y),
+                                                            GraphicsUnit.Pixel);
+
+                                                FormSpace popup = new FormSpace();
+                                                popup.FormClosed += PopupClosed;
+                                                popup.ShowDialog(this);
+                                            }
+                                            //g.DrawImage(bitmapSelect, 3, 3);
+                                            g.DrawImage(InsertBitmap(bitmapSelect, bitmapDebug, mrr_Info.move.x, mrr_Info.move.y), 0, 0);
+
+                                            //InsertBitmap(bitmapSelect, bitmapPrint, mrr_Info.move.x, mrr_Info.move.y);
+                                            //using (Graphics g_ = Graphics.FromImage(bitmapPrint))
+                                            {
+                                                // g_.DrawImage(bitmapPrint, 0, 0);
+                                                //g_.DrawImage(InsertBitmap(bitmapSelect, bitmapPrint, 3, 3), 0, 0);
+                                            }
+                                            //bitmapPrint = InsertBitmap(bitmapSelect, bitmapPrint, 3, 3);
+                                            //bitmapDebug = InsertBitmap(bitmapSelect, bitmapDebug, 3, 3);
+                                            //InsertBitmap(bitmapSelect, bitmapDebug, 10, 10);
+
+                                        }
+                                        
+                                        break;
+
                                 }
                             }
                         if (!debug)
@@ -308,7 +451,6 @@ namespace ComputerGraphics_1
                             }
                         break;
                 }
-                rebildGraphic = false;
                 pictureBox1.Refresh();
             }
         }
@@ -318,21 +460,18 @@ namespace ComputerGraphics_1
             {
                 mouse.click(e, scale, selectedTool);
                 rebildGraphic = true;
-
-
             }
         }
         private void OneTimerTick(object sender, EventArgs e)
         {
             BildFigure();
         }
-        //private void PictureBox1_MouseMove(object sender, MouseEventArgs e)
         private void PictureBox1_MouseMove(object sender, MouseEventArgs e)
         {
             Coord2D tmpDot = new Coord2D(e, scale);
+            mouse.move(e, scale);
             switch (mouse.nextSelect(selectedTool))
             {
-
                 case 1:
                     textBoxX1.Text = $"{tmpDot.Get().x}";
                     textBoxY1.Text = $"{tmpDot.Get().y}";
@@ -349,15 +488,34 @@ namespace ComputerGraphics_1
         {
 
         }
-        public partial class MouseClickState
+        public class MRR_info
+        {
+            public MRR_info()
+            {
+                move = new Coord2D(0, 0, 1);
+                scale_x = 1;
+                scale_y = 1;
+                rotate = 0;
+            }
+            public Coord2D move;
+            public double scale_x;
+            public double scale_y;
+            public int rotate;
+        }
+        public partial class MouseState
         {
             public Coord2D firstClick;
             public Coord2D secondClick;
+            public Coord2D curentCoord;
             private int clickState;
             private int pClickState;
-            public MouseClickState()
+            public MouseState()
             {
                 reset();
+            }
+            public void move(MouseEventArgs e, int scale_)
+            {
+                curentCoord.Withdraw(e, scale_);
             }
             public void click(MouseEventArgs e, int scale_, string brush = "dot")
             {
@@ -371,6 +529,7 @@ namespace ComputerGraphics_1
                         break;
                     case "line":
                     case "circle":
+                    case "selection":
                         clickState = (clickState + 1) % 3;
                         break;
                 }
@@ -394,6 +553,7 @@ namespace ComputerGraphics_1
                 clickState = 0;
                 firstClick = new Coord2D(0, 0, 0);
                 secondClick = new Coord2D(0, 0, 0);
+                curentCoord = new Coord2D(0, 0, 0);
             }
             public int currentSelect()
             {
@@ -412,6 +572,7 @@ namespace ComputerGraphics_1
                         return ((clickState + 1) % 2);
                     case "line":
                     case "circle":
+                    case "selection":
                         return ((clickState + 1) % 3);
                 }
                 return 0;
@@ -440,7 +601,10 @@ namespace ComputerGraphics_1
             }
             public Coord2D Get()
             {
-                return new Coord2D(x / scale, y / scale, 1);
+                if (scale == 0)
+                    return new Coord2D(0, 0, 1);
+                else
+                    return new Coord2D(x / scale, y / scale, 1);
             }
             public bool exists()
             {
