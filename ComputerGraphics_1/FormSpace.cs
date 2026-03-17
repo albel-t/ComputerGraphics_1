@@ -28,8 +28,10 @@ namespace ComputerGraphics_1
         {
             Form1.MRR_info result = new Form1.MRR_info();
 
-            result.move.x = int.Parse(textBox1.Text);
-            result.move.y = int.Parse(textBox2.Text);
+            result.tabIndex = tabControl1.SelectedIndex;
+
+            result.move.x = int.Parse(textBox1.Text) * result.move.GetScale();
+            result.move.y = int.Parse(textBox2.Text) * result.move.GetScale();
 
             result.scale_x = double.Parse(textBox3.Text);
             result.scale_y = double.Parse(textBox4.Text);

@@ -5,15 +5,16 @@ using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using static System.Windows.Forms.AxHost;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
-
 namespace ComputerGraphics_1
 {
 
@@ -27,7 +28,7 @@ namespace ComputerGraphics_1
         private Color printColor = Color.Black;
         private int pointSize = 5;
         private Timer timer;
-        private int scale;
+        private static int scale;
         private int roundCircle;
         private List<Coord2D> dots;
         private MouseState mouse;
@@ -90,7 +91,7 @@ namespace ComputerGraphics_1
 
             using (SolidBrush brush = new SolidBrush(printColor))
             {
-                g.FillRectangle(brush, (x / scale) * scale - scale / 2, (y / scale) * scale - scale / 2, scale, scale);
+                g.FillRectangle(brush, (x / scale) * scale, (y / scale) * scale , scale, scale);
             }
 
         }
@@ -100,14 +101,14 @@ namespace ComputerGraphics_1
             {
                 using (SolidBrush brush = new SolidBrush(Color.FromArgb(255, 255 - (int)(b * 255), 255 - (int)(b * 255))))
                 {
-                    g.FillRectangle(brush, x * scale - scale / 2, y * scale - scale / 2, scale, scale);
+                    g.FillRectangle(brush, x * scale , y * scale , scale, scale);
                 }
             }
             else
             {
                 using (SolidBrush brush = new SolidBrush(Color.FromArgb(255 - (int)(b * 255), 255 - (int)(b * 255), 255 - (int)(b * 255))))
                 {
-                    g.FillRectangle(brush, x * scale - scale / 2, y * scale - scale / 2, scale, scale);
+                    g.FillRectangle(brush, x * scale , y * scale , scale, scale);
                 }
             }
 
@@ -284,33 +285,39 @@ namespace ComputerGraphics_1
 
             return scaledBitmap;
         }
+
         public Bitmap RotateBitmap(Bitmap sourceBitmap, float angleDegrees)
         {
-            if (sourceBitmap == null)
-                throw new ArgumentNullException(nameof(sourceBitmap));
+            double angleRadians = angleDegrees * Math.PI / 180.0;
 
-            float angleRadians = angleDegrees * (float)Math.PI / 180f;
+            float srcCenterX = sourceBitmap.Width / 2f;
+            float srcCenterY = sourceBitmap.Height / 2f;
 
-            float cos = (float)Math.Abs(Math.Cos(angleRadians));
-            float sin = (float)Math.Abs(Math.Sin(angleRadians));
+            double cosAngle = Math.Abs(Math.Cos(angleRadians));
+            double sinAngle = Math.Abs(Math.Sin(angleRadians));
 
-            int newWidth = (int)(sourceBitmap.Width * cos + sourceBitmap.Height * sin);
-            int newHeight = (int)(sourceBitmap.Width * sin + sourceBitmap.Height * cos);
+            int newWidth = (int)(sourceBitmap.Width * cosAngle + sourceBitmap.Height * sinAngle);
+            int newHeight = (int)(sourceBitmap.Width * sinAngle + sourceBitmap.Height * cosAngle);
 
             Bitmap rotatedBitmap = new Bitmap(newWidth, newHeight);
+            float dstCenterX = newWidth / 2f;
+            float dstCenterY = newHeight / 2f;
 
-            using (Graphics g = Graphics.FromImage(rotatedBitmap))
+            for (int y = 0; y < newHeight; y++)
             {
-                g.Clear(Color.Transparent);
-                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
-
-                using (var matrix = new System.Drawing.Drawing2D.Matrix())
+                for (int x = 0; x < newWidth; x++)
                 {
-                    matrix.Rotate(angleDegrees);
-                    g.Transform = matrix;
+                    float offsetX = x - dstCenterX;
+                    float offsetY = y - dstCenterY;
 
-                    g.DrawImage(sourceBitmap, 0, 0);
+                    int originalX = (int)((offsetX * Math.Cos(angleRadians) - offsetY * Math.Sin(angleRadians)) + srcCenterX + 0.5);
+                    int originalY = (int)((offsetX * Math.Sin(angleRadians) + offsetY * Math.Cos(angleRadians)) + srcCenterY + 0.5);
+
+                    if (originalX >= 0 && originalX < sourceBitmap.Width &&
+                        originalY >= 0 && originalY < sourceBitmap.Height)
+                    {
+                        rotatedBitmap.SetPixel(x, y, sourceBitmap.GetPixel(originalX, originalY));
+                    }
                 }
             }
 
@@ -329,7 +336,7 @@ namespace ComputerGraphics_1
 
                         if (Color.R != 255 || Color.G != 255 || Color.B != 255)
                         {
-                            toBitmap.SetPixel(tabX*scale + x, tabY*scale + y, Color);
+                            toBitmap.SetPixel(tabX + x, tabY + y, Color);
                         }
                     }
                 }
@@ -355,9 +362,16 @@ namespace ComputerGraphics_1
                     case 0:
                         if (mouse.prevSelect() != 1)
                             debug = false;
-                        using (Graphics g = Graphics.FromImage(bitmapPrint))
+                        /*using (Graphics g = Graphics.FromImage(bitmapPrint))
                         {
                             g.DrawImage(bitmapDebug, 0, 0);
+                            pictureBox1.Refresh();
+                        }*/
+                        using (Graphics g = Graphics.FromImage(bitmapDebug))
+                        {
+                            g.DrawImage(bitmapPrint, 0, 0);
+                            pictureBox1.Refresh();
+
                         }
 
                         goto case 2;
@@ -409,14 +423,14 @@ namespace ComputerGraphics_1
                                         {
                                             DrawRect(g, debug, mouse.firstClick.Get(), mouse.secondClick.Get());
                                         }
-                                        bitmapSelect = new Bitmap(Math.Abs(mouse.secondClick.x - mouse.firstClick.x) + 1,
-                                                                    Math.Abs(mouse.secondClick.y - mouse.firstClick.y) + 1);
+                                        bitmapSelect = new Bitmap(Math.Abs(mouse.secondClick.x - mouse.firstClick.x),
+                                                                    Math.Abs(mouse.secondClick.y - mouse.firstClick.y));
                                         using (Graphics space = Graphics.FromImage(bitmapSelect))
                                         {
                                             if (debug)
                                             {
                                                 space.DrawImage(bitmapDebug, 0, 0,
-                                                new Rectangle(mouse.firstClick.x, mouse.firstClick.y,
+                                                new Rectangle(mouse.firstClick.Get().x * scale, mouse.firstClick.Get().y * scale,
                                                 mouse.secondClick.x - mouse.firstClick.x,
                                                 mouse.secondClick.y - mouse.firstClick.y),
                                                             GraphicsUnit.Pixel);
@@ -426,7 +440,45 @@ namespace ComputerGraphics_1
                                                 popup.ShowDialog(this);
                                             }
                                             //g.DrawImage(bitmapSelect, 3, 3);
-                                            g.DrawImage(InsertBitmap(bitmapSelect, bitmapDebug, mrr_Info.move.x, mrr_Info.move.y), 0, 0);
+
+                                            using (Graphics debug_clear = Graphics.FromImage(bitmapDebug))
+                                            {
+                                                //debug_clear.DrawImage(bitmapPrint, 0, 0);
+                                                using (SolidBrush white = new SolidBrush(Color.FromArgb(255, 255, 255)))
+                                                {
+                                                    debug_clear.FillRectangle(white,
+                                                        mouse.firstClick.Get().x * scale,
+                                                        mouse.firstClick.Get().y * scale,
+                                                        Math.Abs(mouse.secondClick.Get().x - mouse.firstClick.Get().x) * scale,
+                                                        Math.Abs(mouse.secondClick.Get().y - mouse.firstClick.Get().y) * scale);
+                                                    g.FillRectangle(white,
+                                                        mouse.firstClick.Get().x * scale,
+                                                        mouse.firstClick.Get().y * scale,
+                                                        Math.Abs(mouse.secondClick.Get().x - mouse.firstClick.Get().x) * scale,
+                                                        Math.Abs(mouse.secondClick.Get().y - mouse.firstClick.Get().y) * scale);
+                                                }
+                                                pictureBox1.Refresh();
+
+
+                                            }
+                                            switch (mrr_Info.tabIndex)
+                                            {
+                                                case 0:
+                                                    g.DrawImage(InsertBitmap(bitmapSelect, bitmapDebug,
+                                                    (mrr_Info.move.Get().x + mouse.firstClick.Get().x) * scale,
+                                                    (mrr_Info.move.Get().y + mouse.firstClick.Get().y) * scale), 0, 0);
+
+                                                    break;
+                                                case 1:
+                                                    g.DrawImage(InsertBitmap(ScaleBitmap(bitmapSelect, mrr_Info.scale_x, mrr_Info.scale_y), bitmapDebug,
+                                                    mouse.firstClick.Get().x * scale, mouse.firstClick.Get().y * scale), 0, 0);
+                                                    break;
+                                                    
+                                                case 2:
+                                                    g.DrawImage(InsertBitmap(RotateBitmap(bitmapSelect, mrr_Info.rotate), bitmapDebug,
+                                                    mouse.firstClick.Get().x * scale, mouse.firstClick.Get().y * scale), 0, 0);
+                                                    break;
+                                            }
 
                                             //InsertBitmap(bitmapSelect, bitmapPrint, mrr_Info.move.x, mrr_Info.move.y);
                                             //using (Graphics g_ = Graphics.FromImage(bitmapPrint))
@@ -449,6 +501,11 @@ namespace ComputerGraphics_1
                             {
                                 g.DrawImage(bitmapPrint, 0, 0);
                             }
+                        /*if (!debug)
+                            using (Graphics g = Graphics.FromImage(bitmapPrint))
+                            {
+                                g.DrawImage(bitmapDebug, 0, 0);
+                            }*/
                         break;
                 }
                 pictureBox1.Refresh();
@@ -492,11 +549,13 @@ namespace ComputerGraphics_1
         {
             public MRR_info()
             {
-                move = new Coord2D(0, 0, 1);
+                move = new Coord2D(0, 0, scale);
                 scale_x = 1;
                 scale_y = 1;
                 rotate = 0;
+                tabIndex = 0;
             }
+            public int tabIndex;
             public Coord2D move;
             public double scale_x;
             public double scale_y;
@@ -583,6 +642,10 @@ namespace ComputerGraphics_1
             public int x;
             public int y;
             private int scale;
+            public int GetScale()
+            {
+                return scale;
+            }
             public Coord2D(int x_, int y_, int scale_)
             {
                 x = x_;
