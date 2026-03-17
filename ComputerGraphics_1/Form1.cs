@@ -449,13 +449,13 @@ namespace ComputerGraphics_1
                                                     debug_clear.FillRectangle(white,
                                                         mouse.firstClick.Get().x * scale,
                                                         mouse.firstClick.Get().y * scale,
-                                                        Math.Abs(mouse.secondClick.Get().x - mouse.firstClick.Get().x) * scale,
-                                                        Math.Abs(mouse.secondClick.Get().y - mouse.firstClick.Get().y) * scale);
+                                                        Math.Abs(mouse.secondClick.Get().x - mouse.firstClick.Get().x + 1) * scale,
+                                                        Math.Abs(mouse.secondClick.Get().y - mouse.firstClick.Get().y + 1) * scale);
                                                     g.FillRectangle(white,
                                                         mouse.firstClick.Get().x * scale,
                                                         mouse.firstClick.Get().y * scale,
-                                                        Math.Abs(mouse.secondClick.Get().x - mouse.firstClick.Get().x) * scale,
-                                                        Math.Abs(mouse.secondClick.Get().y - mouse.firstClick.Get().y) * scale);
+                                                        Math.Abs(mouse.secondClick.Get().x - mouse.firstClick.Get().x + 1) * scale,
+                                                        Math.Abs(mouse.secondClick.Get().y - mouse.firstClick.Get().y + 1) * scale);
                                                 }
                                                 pictureBox1.Refresh();
 
